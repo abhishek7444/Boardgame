@@ -14,12 +14,12 @@ spec:
     spec:
       containers:
         - name: boardgame
-          image: 599626541588.dkr.ecr.ap-south-1.amazonaws.com/workshop/demo:latest # <-- update if using ECR
+          image: abhishekjainse/boardgame # <-- update if using ECR
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
       imagePullSecrets:                     # <-- moved to the pod spec
-        - name: ecr-registry-secret
+        - name: regcred
 ---
 apiVersion: v1
 kind: Service
