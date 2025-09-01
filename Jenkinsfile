@@ -74,7 +74,8 @@ pipeline {
         }
         stage('K8s Deploy') {
             steps {
-               withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: ' boardGame-cluster', contextName: '', credentialsId: 'K8s-token', namespace: 'boardgame', serverUrl: 'https://4B4B55E0470DD5115542E75B005050C2.gr7.ap-south-1.eks.amazonaws.com']]) {
+               withKubeCredentials(kubectlCredentials: [[clusterName: ' boardGame-cluster', contextName: 'arn:aws:eks:ap-south-1:771415039782:cluster/boardGame-cluster
+', credentialsId: 'K8s-token', namespace: 'boardgame', serverUrl: 'https://4B4B55E0470DD5115542E75B005050C2.gr7.ap-south-1.eks.amazonaws.com']]) {
                     sh "kubectl apply -f deployment-service.yaml"
                     sleep 20
                 }
@@ -82,7 +83,8 @@ pipeline {
         }
         stage('Verify Deployment') {
             steps {
-               withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'boardGame-cluster', contextName: '', credentialsId: 'K8s-token', namespace: 'boardgame', serverUrl: 'https://4B4B55E0470DD5115542E75B005050C2.gr7.ap-south-1.eks.amazonaws.com']]) {
+               withKubeCredentials(kubectlCredentials: [[clusterName: 'boardGame-cluster', contextName: 'arn:aws:eks:ap-south-1:771415039782:cluster/boardGame-cluster
+', credentialsId: 'K8s-token', namespace: 'boardgame', serverUrl: 'https://4B4B55E0470DD5115542E75B005050C2.gr7.ap-south-1.eks.amazonaws.com']]) {
                     sh "kubectl get pods -n boardgame"
                     sh "kubectl get service -n boardgame"
                 }
