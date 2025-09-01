@@ -6,6 +6,8 @@ pipeline {
     }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
+        K8S_CONTEXT = 'arn:aws:eks:ap-south-1:771415039782:cluster/boardGame-cluster'
+        K8S_NAMESPACE = 'boardgame'
     }
     
     stages {
@@ -14,16 +16,19 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/abhishek7444/Boardgame.git'
             }
         }
+        
         stage('Compile') {
             steps {
                 sh "mvn compile"
             }
         }
+        
         stage('Trivy FS') {
             steps {
                 sh "trivy fs . --format table -o fs.html"
             }
         }
+        
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonarQubeServer') {
@@ -32,63 +37,79 @@ pipeline {
                 }
             }
         }
+        
         stage('Build') {
             steps {
                 sh "mvn package"
             }
         }
+        
         stage('Publish Artifacts') {
             steps {
                 withMaven(
-                    maven: 'maven',                  
-                    jdk: 'JDK',                      
-                    mavenSettingsConfig: 'maven-settings'  
-                 ) 
-                 {
+                    maven: 'maven',
+                    jdk: 'JDK',
+                    mavenSettingsConfig: 'maven-settings'
+                ) {
                     sh "mvn clean deploy"
-                 }
+                }
             }
         }
+        
         stage('Docker Build & Tag') {
             steps {
-                script{
-                withDockerRegistry(credentialsId: 'dockerhub-cred', url: 'https://index.docker.io/v1/') {
-                sh "docker build -t abhishekjainse/boardgame ."
-                }
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub-cred', url: 'https://index.docker.io/v1/') {
+                        sh "docker build -t abhishekjainse/boardgame ."
+                    }
                 }
             }
         }
+        
         stage('Trivy Image Scan') {
             steps {
                 sh "trivy image --format table -o image.html abhishekjainse/boardgame:latest"
             }
         }
+        
         stage('Docker Push Image') {
             steps {
-                script{
-                withDockerRegistry(credentialsId: 'dockerhub-cred', url: 'https://index.docker.io/v1/') {
-                    sh "docker push abhishekjainse/boardgame"
-                }
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub-cred', url: 'https://index.docker.io/v1/') {
+                        sh "docker push abhishekjainse/boardgame"
+                    }
                 }
             }
         }
+        
         stage('K8s Deploy') {
             steps {
-               withKubeCredentials(kubectlCredentials: [[clusterName: ' boardGame-cluster', contextName: 'arn:aws:eks:ap-south-1:771415039782:cluster/boardGame-cluster
-', credentialsId: 'K8s-token', namespace: 'boardgame', serverUrl: 'https://4B4B55E0470DD5115542E75B005050C2.gr7.ap-south-1.eks.amazonaws.com']]) {
-                    sh "kubectl apply -f deployment-service.yaml"
+               withKubeCredentials(kubectlCredentials: [[
+                   clusterName: 'boardGame-cluster',
+                   contextName: "${K8S_CONTEXT}",
+                   credentialsId: 'K8s-token',
+                   namespace: "${K8S_NAMESPACE}",
+                   serverUrl: 'https://4B4B55E0470DD5115542E75B005050C2.gr7.ap-south-1.eks.amazonaws.com'
+               ]]) {
+                    sh "kubectl apply -f deployment-service.yaml -n ${K8S_NAMESPACE}"
                     sleep 20
                 }
             }
         }
+        
         stage('Verify Deployment') {
             steps {
-               withKubeCredentials(kubectlCredentials: [[clusterName: 'boardGame-cluster', contextName: 'arn:aws:eks:ap-south-1:771415039782:cluster/boardGame-cluster
-', credentialsId: 'K8s-token', namespace: 'boardgame', serverUrl: 'https://4B4B55E0470DD5115542E75B005050C2.gr7.ap-south-1.eks.amazonaws.com']]) {
-                    sh "kubectl get pods -n boardgame"
-                    sh "kubectl get service -n boardgame"
+               withKubeCredentials(kubectlCredentials: [[
+                   clusterName: 'boardGame-cluster',
+                   contextName: "${K8S_CONTEXT}",
+                   credentialsId: 'K8s-token',
+                   namespace: "${K8S_NAMESPACE}",
+                   serverUrl: 'https://4B4B55E0470DD5115542E75B005050C2.gr7.ap-south-1.eks.amazonaws.com'
+               ]]) {
+                    sh "kubectl get pods -n ${K8S_NAMESPACE}"
+                    sh "kubectl get service -n ${K8S_NAMESPACE}"
                 }
             }
         }
-    }  
-}  
+    }
+}
