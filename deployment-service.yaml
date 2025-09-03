@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: boardgame-deployment
 spec:
-  replicas: 2
+  replicas: 0
   selector:
     matchLabels:
       app: boardgame
